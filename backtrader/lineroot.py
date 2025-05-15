@@ -40,21 +40,38 @@ from . import metabase
 
 class MetaLineRoot(metabase.MetaParams):
     '''
-    Once the object is created (effectively pre-init) the "owner" of this
-    class is sought
+    元类 `MetaLineRoot` 用于在对象创建时自动寻找并设置该对象的“所有者”。
+    使用案例：
+    - 当一个类继承了 `MetaLineRoot` 时，在实例化该类时，会通过 `donew` 方法自动找到并设置 `_owner` 属性。
+    - 例如：
+        class MyLine(LineRoot):
+            pass
+
+        my_line = MyLine()
+        # 在实例化过程中，`_owner` 会被自动设置为 `LineMultiple` 或其他指定的类。
+
+    过程解释：
+    1. `donew` 方法在对象创建时被调用。
+    2. 它通过 `metabase.findowner` 方法找到对象的所有者。
+    3. 将找到的所有者存储在 `_owner` 属性中。
     '''
 
     def donew(cls, *args, **kwargs):
+        # 调用父类的 `donew` 方法，创建对象并返回对象、args 和 kwargs
         _obj, args, kwargs = super(MetaLineRoot, cls).donew(*args, **kwargs)
 
-        # Find the owner and store it
-        # startlevel = 4 ... to skip intermediate call stacks
+        # 从 kwargs 中提取 `_ownerskip` 参数，用于跳过指定的调用栈层级
         ownerskip = kwargs.pop('_ownerskip', None)
-        _obj._owner = metabase.findowner(_obj,
-                                         _obj._OwnerCls or LineMultiple,
-                                         skip=ownerskip)
 
-        # Parameter values have now been set before __init__
+        # 使用 `metabase.findowner` 方法找到对象的所有者
+        # `_OwnerCls` 默认为 `LineMultiple`，如果未指定则使用 `LineMultiple`
+        _obj._owner = metabase.findowner(
+            _obj,  # 当前对象
+            _obj._OwnerCls or LineMultiple,  # 所有者的类
+            skip=ownerskip  # 跳过的调用栈层级
+        )
+
+        # 返回创建的对象以及剩余的 args 和 kwargs
         return _obj, args, kwargs
 
 
