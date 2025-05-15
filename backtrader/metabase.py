@@ -113,7 +113,10 @@ def findowner(owned, cls, startlevel=2, skip=None):
     # 从指定层级开始遍历调用栈帧，跳过当前函数和直接调用者
     for framelevel in itertools.count(startlevel):
         try:
-            # 获取特定层级的栈帧
+            # 获取特定层级的栈帧： _getframe() 方法是返回调用堆栈中指定深度（depth）的​​帧对象（frame object）​​，包含当前执行的代码上下文信息：
+                                # ​​depth=0​​（默认）：返回当前函数的帧对象。
+                                # ​​depth=1​​：返回调用当前函数的上一级帧对象（调用者）。
+                                # 若 depth 超过堆栈深度，抛出 ValueError。
             frame = sys._getframe(framelevel)
         except ValueError:
             # 如果超出了调用栈的最大深度，说明没有找到符合条件的所有者，终止循环
@@ -193,7 +196,11 @@ class MetaBase(type):
         返回:
             初始化后的对象和可能被修改的参数元组(_obj, args, kwargs)
         """
-        _obj.__init__(*args, **kwargs)
+        if args:
+            # 如果args不为空，调用__init__方法进行初始化
+            _obj.__init__(*args)
+        else:
+            _obj.__init__(*args, **kwargs)
         return _obj, args, kwargs
 
     def dopostinit(cls, _obj, *args, **kwargs):
@@ -222,7 +229,13 @@ class MetaBase(type):
         cls, args, kwargs = cls.doprenew(*args, **kwargs)
         _obj, args, kwargs = cls.donew(*args, **kwargs)
         _obj, args, kwargs = cls.dopreinit(_obj, *args, **kwargs)
-        _obj, args, kwargs = cls.doinit(_obj, **args, **kwargs)
+        # _obj, args, kwargs = cls.doinit(_obj, **args, **kwargs)
+        if args:
+        # 如果args是元组，不要尝试解包它
+            _obj, args, kwargs = cls.doinit(_obj, *args, **kwargs)
+        else:
+        # 没有位置参数，只有关键字参数
+            _obj, args, kwargs = cls.doinit(_obj, **kwargs)
         _obj, args, kwargs = cls.dopostinit(_obj, *args, **kwargs)
         return _obj
 
