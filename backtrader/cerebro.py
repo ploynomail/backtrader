@@ -1,23 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8; py-indent-offset:4 -*-
-###############################################################################
-#
-# Copyright (C) 2015-2023 Daniel Rodriguez
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -58,219 +38,177 @@ class OptReturn(object):
 
 
 class Cerebro(with_metaclass(MetaParams, object)):
-    '''Params:
+    '''参数:
 
-      - ``preload`` (default: ``True``)
+      - preload (默认值: ``True``)
 
-        Whether to preload the different ``data feeds`` passed to cerebro for
-        the Strategies
+        是否预加载传递给cerebro的不同"数据源"，以供策略使用
 
-      - ``runonce`` (default: ``True``)
+      - runonce (默认值: ``True``)
 
-        Run ``Indicators`` in vectorized mode to speed up the entire system.
-        Strategies and Observers will always be run on an event based basis
+        以向量化模式运行"指标"以加速整个系统,策略和观察器将始终基于事件方式运行
 
-      - ``live`` (default: ``False``)
+      - live (默认值: ``False``)
 
-        If no data has reported itself as *live* (via the data's ``islive``
-        method but the end user still want to run in ``live`` mode, this
-        parameter can be set to true
+        如果没有数据通过数据的"islive"方法将自己报告为"实时"，但最终用户仍希望在"实时"模式下运行，可以将此参数设置为true
+        这将同时停用"preload"和"runonce"。它对内存节省方案没有影响。
 
-        This will simultaneously deactivate ``preload`` and ``runonce``. It
-        will have no effect on memory saving schemes.
+      - maxcpus (默认值: None -> 使用所有可用核心) 优化过程中同时使用多少个CPU核心
 
-        Run ``Indicators`` in vectorized mode to speed up the entire system.
-        Strategies and Observers will always be run on an event based basis
+      - stdstats (默认值: ``True``)
 
-      - ``maxcpus`` (default: None -> all available cores)
+        如果为True，将添加默认观察器：Broker(Cash和Value)、Trades和BuySell
 
-         How many cores to use simultaneously for optimization
+      - oldbuysell (默认值: ``False``)
+        如果"stdstats"为"True"且观察器被自动添加，此开关控制"BuySell",观察器的主要行为
+        - ``False``: 使用现代行为，买入/卖出信号分别绘制在低/高价格的下方/上方，以避免图表混乱
+        - ``True``: 使用已弃用的行为，买入/卖出信号绘制在订单执行的平均价格处。这当然会出现在OHLC柱或Close线上，使图表识别变得困难。
 
-      - ``stdstats`` (default: ``True``)
+      - ``oldtrades`` (默认值: ``False``)
+        如果"stdstats"为"True"且观察器被自动添加，此开关控制"Trades",观察器的主要行为
+        - ``False``: 使用现代行为，所有数据的交易使用不同的标记绘制
+        - ``True``: 使用旧的Trades观察器，用相同的标记绘制交易，只区分交易是正面还是负面
 
-        If True default Observers will be added: Broker (Cash and Value),
-        Trades and BuySell
+      - ``exactbars`` (默认值: ``False``)
 
-      - ``oldbuysell`` (default: ``False``)
+        使用默认值时，存储在line中的每个值都保留在内存中
 
-        If ``stdstats`` is ``True`` and observers are getting automatically
-        added, this switch controls the main behavior of the ``BuySell``
-        observer
+        可能的值:
+          - ``True`` 或 ``1``: 所有"线"对象将内存使用减少到自动计算的最小周期。
+            如果简单移动平均线周期为30，则底层数据将始终保持30条数据的运行缓冲区，以便计算简单移动平均线
+            - 此设置将停用"preload"和"runonce"
+            - 使用此设置还会停用**绘图**功能
 
-        - ``False``: use the modern behavior in which the buy / sell signals
-          are plotted below / above the low / high prices respectively to avoid
-          cluttering the plot
+          - ``-1``: 策略级别的数据源和指标/操作将在内存中保留所有数据。
 
-        - ``True``: use the deprecated behavior in which the buy / sell signals
-          are plotted where the average price of the order executions for the
-          given moment in time is. This will of course be on top of an OHLC bar
-          or on a Line on Cloe bar, difficulting the recognition of the plot.
+            例如：``RSI``内部使用指标``UpDay``进行计算。此子指标不会在内存中,保留所有数据
+            - 这允许保持"绘图"和"预加载"功能处于活动状态。
+            - "runonce"将被停用
 
-      - ``oldtrades`` (default: ``False``)
+          - ``-2``: 作为策略属性保留的数据源和指标将在内存中保留所有点。
 
-        If ``stdstats`` is ``True`` and observers are getting automatically
-        added, this switch controls the main behavior of the ``Trades``
-        observer
+            例如：``RSI``内部使用指标``UpDay``进行计算。此子指标不会在内存中,保留所有数据
 
-        - ``False``: use the modern behavior in which trades for all datas are
-          plotted with different markers
+            如果在``__init__``中定义了类似``a = self.data.close - self.data.high`` 这样的表达式，那么``a``将不会在内存中保留所有数据
+            - 这允许保持"绘图"和"预加载"功能处于活动状态。
+            - "runonce"将被停用
 
-        - ``True``: use the old Trades observer which plots the trades with the
-          same markers, differentiating only if they are positive or negative
+      - ``objcache`` (默认值: ``False``)
 
-      - ``exactbars`` (default: ``False``)
-
-        With the default value each and every value stored in a line is kept in
-        memory
-
-        Possible values:
-          - ``True`` or ``1``: all "lines" objects reduce memory usage to the
-            automatically calculated minimum period.
-
-            If a Simple Moving Average has a period of 30, the underlying data
-            will have always a running buffer of 30 bars to allow the
-            calculation of the Simple Moving Average
-
-            - This setting will deactivate ``preload`` and ``runonce``
-            - Using this setting also deactivates **plotting**
-
-          - ``-1``: datafreeds and indicators/operations at strategy level will
-            keep all data in memory.
-
-            For example: a ``RSI`` internally uses the indicator ``UpDay`` to
-            make calculations. This subindicator will not keep all data in
-            memory
-
-            - This allows to keep ``plotting`` and ``preloading`` active.
-
-            - ``runonce`` will be deactivated
-
-          - ``-2``: data feeds and indicators kept as attributes of the
-            strategy will keep all points in memory.
-
-            For example: a ``RSI`` internally uses the indicator ``UpDay`` to
-            make calculations. This subindicator will not keep all data in
-            memory
-
-            If in the ``__init__`` something like
-            ``a = self.data.close - self.data.high`` is defined, then ``a``
-            will not keep all data in memory
-
-            - This allows to keep ``plotting`` and ``preloading`` active.
-
-            - ``runonce`` will be deactivated
-
-      - ``objcache`` (default: ``False``)
-
-        Experimental option to implement a cache of lines objects and reduce
-        the amount of them. Example from UltimateOscillator::
+        实验性选项，实现线对象缓存以减少它们的数量。
+        例如，来自UltimateOscillator的示例代码::
 
           bp = self.data.close - TrueLow(self.data)
           tr = TrueRange(self.data)  # -> creates another TrueLow(self.data)
 
-        If this is ``True`` the 2nd ``TrueLow(self.data)`` inside ``TrueRange``
-        matches the signature of the one in the ``bp`` calculation. It will be
-        reused.
+        如果设置为``True``，``TrueRange``中的第二个``TrueLow(self.data)``
+        与``bp``计算中的相同，因此会被重用。
 
-        Corner cases may happen in which this drives a line object off its
-        minimum period and breaks things and it is therefore disabled.
+        在某些极端情况下，这可能会导致线对象偏离其最小周期并导致问题，
+        因此默认禁用。
 
-      - ``writer`` (default: ``False``)
+      - ``writer`` (默认值: ``False``)
 
-        If set to ``True`` a default WriterFile will be created which will
-        print to stdout. It will be added to the strategy (in addition to any
-        other writers added by the user code)
+        如果设置为``True``，将创建一个默认的WriterFile，它将打印到标准输出。
+        它将被添加到策略中（除了用户代码添加的任何其他写入器）
 
-      - ``tradehistory`` (default: ``False``)
+      - ``tradehistory`` (默认值: ``False``)
 
-        If set to ``True``, it will activate update event logging in each trade
-        for all strategies. This can also be accomplished on a per strategy
-        basis with the strategy method ``set_tradehistory``
+        如果设置为``True``，它将为所有策略激活每笔交易的事件日志记录。
+        这也可以通过策略的``set_tradehistory``方法在每个策略的基础上实现
 
-      - ``optdatas`` (default: ``True``)
+      - ``optdatas`` (默认值: ``True``)
 
-        If ``True`` and optimizing (and the system can ``preload`` and use
-        ``runonce``, data preloading will be done only once in the main process
-        to save time and resources.
+        如果在优化过程中设置为``True``（且系统可以``preload``和使用``runonce``），
+        数据预加载将仅在主进程中执行一次，以节省时间和资源。
 
-        The tests show an approximate ``20%`` speed-up moving from a sample
-        execution in ``83`` seconds to ``66``
+        测试表明，执行时间从样本的``83``秒减少到``66``秒，提高了大约``20%``
 
-      - ``optreturn`` (default: ``True``)
+      - ``optreturn`` (默认值: ``True``)
 
-        If ``True`` the optimization results will not be full ``Strategy``
-        objects (and all *datas*, *indicators*, *observers* ...) but and object
-        with the following attributes (same as in ``Strategy``):
+        如果为``True``，优化结果将不是完整的``Strategy``对象（及其所有*数据*、
+        *指标*、*观察器*...），而是具有以下属性的对象（与``Strategy``中相同）：
 
-          - ``params`` (or ``p``) the strategy had for the execution
-          - ``analyzers`` the strategy has executed
+          - 该策略执行时的``params``（或``p``）
+          - 该策略已执行的``analyzers``
 
-        In most occassions, only the *analyzers* and with which *params* are
-        the things needed to evaluate a the performance of a strategy. If
-        detailed analysis of the generated values for (for example)
-        *indicators* is needed, turn this off
+        在大多数情况下，评估策略性能只需要*分析器*和使用哪些*参数*。如果需要详细
+        分析（例如）*指标*的生成值，请关闭此选项
 
-        The tests show a ``13% - 15%`` improvement in execution time. Combined
-        with ``optdatas`` the total gain increases to a total speed-up of
-        ``32%`` in an optimization run.
+        测试表明执行时间提高了``13% - 15%``。与``optdatas``结合使用，
+        优化运行的总提速增加到``32%``。
 
-      - ``oldsync`` (default: ``False``)
+      - ``oldsync`` (默认值: ``False``)
 
-        Starting with release 1.9.0.99 the synchronization of multiple datas
-        (same or different timeframes) has been changed to allow datas of
-        different lengths.
+        从1.9.0.99版本开始，多个数据（相同或不同时间帧）的同步已更改，以允许不同长度的数据。
 
-        If the old behavior with data0 as the master of the system is wished,
-        set this parameter to true
+        如果希望使用data0作为系统主数据的旧行为，请将此参数设置为true
 
-      - ``tz`` (default: ``None``)
+      - ``tz`` (默认值: ``None``)
 
-        Adds a global timezone for strategies. The argument ``tz`` can be
+        为策略添加全局时区。参数``tz``可以是：
 
-          - ``None``: in this case the datetime displayed by strategies will be
-            in UTC, which has been always the standard behavior
+          - ``None``：在这种情况下，策略显示的日期时间将采用UTC格式，这直接是标准行为
 
-          - ``pytz`` instance. It will be used as such to convert UTC times to
-            the chosen timezone
+          - ``pytz``实例。它将用于将UTC时间转换为所选时区
 
-          - ``string``. Instantiating a ``pytz`` instance will be attempted.
+          - ``字符串``。将尝试实例化一个``pytz``实例。
 
-          - ``integer``. Use, for the strategy, the same timezone as the
-            corresponding ``data`` in the ``self.datas`` iterable (``0`` would
-            use the timezone from ``data0``)
+          - ``整数``。对于策略，使用与``self.datas``迭代器中相应的``data``相同的时区
+            （``0``将使用``data0``的时区）
 
-      - ``cheat_on_open`` (default: ``False``)
+      - ``cheat_on_open`` (默认值: ``False``)
 
-        The ``next_open`` method of strategies will be called. This happens
-        before ``next`` and before the broker has had a chance to evaluate
-        orders. The indicators have not yet been recalculated. This allows
-        issuing an orde which takes into account the indicators of the previous
-        day but uses the ``open`` price for stake calculations
+        将调用策略的``next_open``方法。这发生在``next``之前，在经纪人有机会评估订单之前。
+        指标尚未重新计算。这允许发出考虑前一天指标但使用``open``价格进行持仓计算的订单。
 
-        For cheat_on_open order execution, it is also necessary to make the
-        call ``cerebro.broker.set_coo(True)`` or instantite a broker with
-        ``BackBroker(coo=True)`` (where *coo* stands for cheat-on-open) or set
-        the ``broker_coo`` parameter to ``True``. Cerebro will do it
-        automatically unless disabled below.
+        对于cheat_on_open订单执行，还需要调用``cerebro.broker.set_coo(True)``或
+        实例化一个带有``BackBroker(coo=True)``的经纪人（其中*coo*代表cheat-on-open），
+        或将``broker_coo``参数设置为``True``。除非下面禁用，否则Cerebro将自动执行此操作。
 
-      - ``broker_coo`` (default: ``True``)
+      - ``broker_coo`` (默认值: ``True``)
 
-        This will automatically invoke the ``set_coo`` method of the broker
-        with ``True`` to activate ``cheat_on_open`` execution. Will only do it
-        if ``cheat_on_open`` is also ``True``
+        这将自动调用经纪人的``set_coo``方法，并传入``True``以激活``cheat_on_open``执行。
+        仅当``cheat_on_open``也为``True``时才会执行此操作。
 
-      - ``quicknotify`` (default: ``False``)
+      - ``quicknotify`` (默认值: ``False``)
 
-        Broker notifications are delivered right before the delivery of the
-        *next* prices. For backtesting this has no implications, but with live
-        brokers a notification can take place long before the bar is
-        delivered. When set to ``True`` notifications will be delivered as soon
-        as possible (see ``qcheck`` in live feeds)
+        经纪人通知在下一个价格交付之前传递。对于回测，这没有影响，但对于实时经纪人，
+        通知可能发生在交付柱状图之前很长时间。设置为``True``时，通知将尽快传递
+        （参见实时数据中的``qcheck``）
 
-        Set to ``False`` for compatibility. May be changed to ``True``
+        设置为``False``以保持兼容性。将来可能更改为``True``
 
+        实际使用案例：
+        
+        基本使用：
+        ```python
+        cerebro = bt.Cerebro()
+        cerebro.adddata(data)            # 添加数据源
+        cerebro.addstrategy(MyStrategy)  # 添加策略类
+        cerebro.run()                    # 运行回测
+        cerebro.plot()                   # 绘制结果
+        ```
+        
+        实时交易设置：
+        ```python
+        # 创建实时交易环境
+        cerebro = bt.Cerebro(live=True, quicknotify=True)
+        cerebro.adddata(live_data_feed)
+        cerebro.run()
+        ```
+        
+        优化策略参数：
+        ```python
+        # 优化SMA策略的参数
+        cerebro = bt.Cerebro(optreturn=True, maxcpus=4)
+        cerebro.optstrategy(SMAStrategy, period=range(10, 30))
+        results = cerebro.run()
+        # 分析结果
+        for r in results:
+            print(f"期间: {r.params.period}, 收益: {r.analyzers.returns.get_analysis()['returns']}")
+        ```
     '''
-
     params = (
         ('preload', True),
         ('runonce', True),
