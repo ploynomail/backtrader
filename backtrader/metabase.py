@@ -113,7 +113,10 @@ def findowner(owned, cls, startlevel=2, skip=None):
     # 从指定层级开始遍历调用栈帧，跳过当前函数和直接调用者
     for framelevel in itertools.count(startlevel):
         try:
-            # 获取特定层级的栈帧
+            # 获取特定层级的栈帧： _getframe() 方法是返回调用堆栈中指定深度（depth）的​​帧对象（frame object）​​，包含当前执行的代码上下文信息：
+                                # ​​depth=0​​（默认）：返回当前函数的帧对象。
+                                # ​​depth=1​​：返回调用当前函数的上一级帧对象（调用者）。
+                                # 若 depth 超过堆栈深度，抛出 ValueError。
             frame = sys._getframe(framelevel)
         except ValueError:
             # 如果超出了调用栈的最大深度，说明没有找到符合条件的所有者，终止循环
