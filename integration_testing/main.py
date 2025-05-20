@@ -112,7 +112,7 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
                 self._thread = None
             self._put_notification(self.DISCONNECTED)
 
-    def haslivedata(self):
+    def haslivedata(self) -> bool:
         """检查是否有实时数据可用"""
         return not self._data_q.empty()
 
@@ -177,11 +177,6 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
         finally:
             self._running = False
 
-    def _put_notification(self, status, *args, **kwargs):
-        """添加通知到队列"""
-        msg = (status, args, kwargs)
-        self._notification_q.put(msg)
-
     def _check(self, forcedata=None):
         """
         检查是否有新数据可用，但不移动指针
@@ -197,10 +192,10 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
         # 默认只检查是否有数据
         return self.haslivedata()
 
-    def do_qcheck(self, newqcheck, elapsed_seconds):
-        """执行队列检查，用于实时数据源"""
-        # 可以根据经过的时间调整检查频率
-        pass
+    def _put_notification(self, status, *args, **kwargs):
+        """添加通知到队列"""
+        msg = (status, args, kwargs)
+        self._notification_q.put(msg)
 
     def get_notifications(self):
         """获取队列中的所有通知"""
@@ -252,15 +247,6 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
         # 由于我们是实时数据源，通常不回退数据
         # 但此方法需要存在以满足backtrader的API要求
         pass
-
-    def _tick_fill(self, force=False):
-        """填充tick数据，确保OHLCV值正确填充"""
-        # 已在next中填充，所以这里不需要额外操作
-        pass
-
-    def _last(self, datamaster=None):
-        """数据结束时的处理"""
-        return False  # 实时数据源通常永不结束
 
 
 class DefaultSimulatedDataGenerator:
@@ -435,7 +421,7 @@ if __name__ == '__main__':
         historical_days=30,                # 回填30天历史数据
         timeframe=bt.TimeFrame.Minutes,    # 分钟级数据
         compression=5,                     # 5分钟压缩
-        qcheck=0.5,                        # 每0.5秒检查新数据
+        qcheck=3,                        # 每0.5秒检查新数据
         rtbar=True,                        # 交付未完成的实时柱
         simulated_generator=DefaultSimulatedDataGenerator,
         generator_args={

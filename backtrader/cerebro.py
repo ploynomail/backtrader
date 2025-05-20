@@ -1509,9 +1509,9 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
             # 记录开始时间并告诉馈送从qcheck值中折扣经过的时间
             drets = []  # 创建数据返回值列表
-            qstart = datetime.datetime.utcnow()  # 记录开始时间
+            qstart = datetime.datetime.now(datetime.timezone.utc)  # 记录开始时间
             for d in datas:  # 遍历所有数据
-                qlapse = datetime.datetime.utcnow() - qstart  # 计算经过的时间
+                qlapse = datetime.datetime.now(datetime.timezone.utc) - qstart  # 计算经过的时间
                 d.do_qcheck(newqcheck, qlapse.total_seconds())  # 执行qcheck
                 # 实例: 调用data0.next()可能返回True表示有新数据，None表示等待中，False表示没有更多数据
                 drets.append(d.next(ticks=False))  # 调用next方法并记录返回值
