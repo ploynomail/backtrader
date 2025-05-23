@@ -59,73 +59,65 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
         如果为True，将添加默认观察器：Broker(Cash和Value)、Trades和BuySell
 
-      - oldbuysell (默认值: ``False``)
+      - oldbuysell (默认值: ``False``) ---------> 忽略
         如果"stdstats"为"True"且观察器被自动添加，此开关控制"BuySell",观察器的主要行为
         - ``False``: 使用现代行为，买入/卖出信号分别绘制在低/高价格的下方/上方，以避免图表混乱
         - ``True``: 使用已弃用的行为，买入/卖出信号绘制在订单执行的平均价格处。这当然会出现在OHLC柱或Close线上，使图表识别变得困难。
 
-      - ``oldtrades`` (默认值: ``False``)
+      - oldtrades (默认值: ``False``) ---------> 忽略
         如果"stdstats"为"True"且观察器被自动添加，此开关控制"Trades",观察器的主要行为
-        - ``False``: 使用现代行为，所有数据的交易使用不同的标记绘制
-        - ``True``: 使用旧的Trades观察器，用相同的标记绘制交易，只区分交易是正面还是负面
+        - False: 使用现代行为，所有数据的交易使用不同的标记绘制
+        - True: 使用旧的Trades观察器，用相同的标记绘制交易，只区分交易是正面还是负面
 
-      - ``exactbars`` (默认值: ``False``)
-
+      - exactbars (默认值: ``False``)
+        ​​内存优化​​
+        - exactbars通过动态缓存最小必要数据量来减少内存占用。
+            例如，当计算30日均线时，系统仅缓存最近30根K线数据，而不是完整的历史数据。据测试，启用该参数后内存消耗可降低至原来的千分之四，节约约250倍内存。
+        ​​功能控制​​
+        - 启用后会自动禁用数据预加载（preload=False）、指标预计算（runonce=False）和绘图功能（因内存中数据不完整）。这使其适用于对实时性要求高或数据量极大的场景。
         使用默认值时，存储在line中的每个值都保留在内存中
 
         可能的值:
-          - ``True`` 或 ``1``: 所有"线"对象将内存使用减少到自动计算的最小周期。
+          - True 或 1: 所有"线"对象将内存使用减少到自动计算的最小周期。
             如果简单移动平均线周期为30，则底层数据将始终保持30条数据的运行缓冲区，以便计算简单移动平均线
             - 此设置将停用"preload"和"runonce"
             - 使用此设置还会停用**绘图**功能
 
-          - ``-1``: 策略级别的数据源和指标/操作将在内存中保留所有数据。
+          - -1: 策略级别的数据源和指标/操作将在内存中保留所有数据。
 
             例如：``RSI``内部使用指标``UpDay``进行计算。此子指标不会在内存中,保留所有数据
             - 这允许保持"绘图"和"预加载"功能处于活动状态。
             - "runonce"将被停用
 
           - ``-2``: 作为策略属性保留的数据源和指标将在内存中保留所有点。
-
             例如：``RSI``内部使用指标``UpDay``进行计算。此子指标不会在内存中,保留所有数据
-
             如果在``__init__``中定义了类似``a = self.data.close - self.data.high`` 这样的表达式，那么``a``将不会在内存中保留所有数据
             - 这允许保持"绘图"和"预加载"功能处于活动状态。
             - "runonce"将被停用
 
-      - ``objcache`` (默认值: ``False``)
+      - objcache (默认值: ``False``)
 
         实验性选项，实现线对象缓存以减少它们的数量。
         例如，来自UltimateOscillator的示例代码::
-
           bp = self.data.close - TrueLow(self.data)
           tr = TrueRange(self.data)  # -> creates another TrueLow(self.data)
-
         如果设置为``True``，``TrueRange``中的第二个``TrueLow(self.data)``
-        与``bp``计算中的相同，因此会被重用。
+        与``bp``计算中的相同，因此会被重用。 在某些极端情况下，这可能会导致线对象偏离其最小周期并导致问题，因此默认禁用。
 
-        在某些极端情况下，这可能会导致线对象偏离其最小周期并导致问题，
-        因此默认禁用。
-
-      - ``writer`` (默认值: ``False``)
-
+      - writer (默认值: ``False``)
         如果设置为``True``，将创建一个默认的WriterFile，它将打印到标准输出。
         它将被添加到策略中（除了用户代码添加的任何其他写入器）
 
-      - ``tradehistory`` (默认值: ``False``)
-
+      - tradehistory (默认值: ``False``)
         如果设置为``True``，它将为所有策略激活每笔交易的事件日志记录。
         这也可以通过策略的``set_tradehistory``方法在每个策略的基础上实现
 
-      - ``optdatas`` (默认值: ``True``)
-
+      - optdatas (默认值: ``True``)
         如果在优化过程中设置为``True``（且系统可以``preload``和使用``runonce``），
         数据预加载将仅在主进程中执行一次，以节省时间和资源。
-
         测试表明，执行时间从样本的``83``秒减少到``66``秒，提高了大约``20%``
 
-      - ``optreturn`` (默认值: ``True``)
-
+      - optreturn (默认值: ``True``)
         如果为``True``，优化结果将不是完整的``Strategy``对象（及其所有*数据*、
         *指标*、*观察器*...），而是具有以下属性的对象（与``Strategy``中相同）：
 
@@ -137,12 +129,11 @@ class Cerebro(with_metaclass(MetaParams, object)):
         测试表明执行时间提高了``13% - 15%``。与``optdatas``结合使用，
         优化运行的总提速增加到``32%``。
 
-      - ``oldsync`` (默认值: ``False``)
-
+      - oldsync (默认值: ``False``) ---------> 忽略
         从1.9.0.99版本开始，多个数据（相同或不同时间帧）的同步已更改，以允许不同长度的数据。
         如果希望使用data0作为系统主数据的旧行为，请将此参数设置为true
 
-      - ``tz`` (默认值: ``None``)
+      - tz (默认值: ``None``)
         为策略添加全局时区。参数``tz``可以是：
           - ``None``：在这种情况下，策略显示的日期时间将采用UTC格式，这直接是标准行为
           - ``pytz``实例。它将用于将UTC时间转换为所选时区
@@ -150,7 +141,7 @@ class Cerebro(with_metaclass(MetaParams, object)):
           - ``整数``。对于策略，使用与``self.datas``迭代器中相应的``data``相同的时区
             （``0``将使用``data0``的时区）
 
-      - ``cheat_on_open`` (默认值: ``False``)
+      - cheat_on_open (默认值: ``False``)
         将调用策略的``next_open``方法。这发生在``next``之前，在经纪人有机会评估订单之前。
         指标尚未重新计算。这允许发出考虑前一天指标但使用``open``价格进行持仓计算的订单。
 
@@ -158,13 +149,12 @@ class Cerebro(with_metaclass(MetaParams, object)):
         实例化一个带有``BackBroker(coo=True)``的经纪人（其中*coo*代表cheat-on-open），
         或将``broker_coo``参数设置为``True``。除非下面禁用，否则Cerebro将自动执行此操作。
 
-      - ``broker_coo`` (默认值: ``True``)
+      - broker_coo (默认值: ``True``)
 
         这将自动调用经纪人的``set_coo``方法，并传入``True``以激活``cheat_on_open``执行。
         仅当``cheat_on_open``也为``True``时才会执行此操作。
 
-      - ``quicknotify`` (默认值: ``False``)
-
+      - quicknotify (默认值: ``False``)
         经纪人通知在下一个价格交付之前传递。对于回测，这没有影响，但对于实时经纪人，
         通知可能发生在交付柱状图之前很长时间。设置为``True``时，通知将尽快传递
         （参见实时数据中的``qcheck``）设置为``False``以保持兼容性。将来可能更改为``True``
@@ -418,6 +408,7 @@ class Cerebro(with_metaclass(MetaParams, object)):
         
         ``cal``可以是``TradingCalendar``实例、字符串或``pandas_market_calendars``实例。
         字符串将实例化为``PandasMarketCalendar``(需要安装pandas_market_calendar模块)。
+        pandas_market_calendars:通过XSHG（上海证券交易所代码）和XSHE（深圳证券交易所代码）来识别A股市场日历
         
         如果传入`TradingCalendarBase`的子类(非实例)，将被实例化
         '''
@@ -595,7 +586,7 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
     def _storenotify(self):
         """
-        内部方法，处理所有store的通知并分发给cerebro和策略
+        内部方法，处理所有store的通知并分发给cerebro和策略，这是主方法
         """
         for store in self.stores:  # 遍历所有store
             for notif in store.get_notifications():  # 获取每个store的所有通知
@@ -619,7 +610,7 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
     def _datanotify(self):
         """
-        内部方法，处理所有数据的通知并分发给cerebro和策略
+        内部方法，处理所有数据的通知并分发给cerebro和策略，这是主方法
         """
         for data in self.datas:  # 遍历所有数据
             for notif in data.get_notifications():  # 获取每个数据的所有通知
@@ -950,7 +941,7 @@ class Cerebro(with_metaclass(MetaParams, object)):
         返回:
             list: 包含策略实例的列表，具体取决于是否启用优化
             - 对于非优化：包含通过addstrategy添加的策略实例列表
-            - 对于优化：包含通过addstrategy添加的策略实例列表的列表
+            - 对于优化：  包含通过addstrategy添加的策略实例列表的列表
         '''
         self._event_stop = False  # 重置停止事件标志
 
@@ -1509,9 +1500,9 @@ class Cerebro(with_metaclass(MetaParams, object)):
 
             # 记录开始时间并告诉馈送从qcheck值中折扣经过的时间
             drets = []  # 创建数据返回值列表
-            qstart = datetime.datetime.now(datetime.timezone.utc)  # 记录开始时间
+            qstart = datetime.datetime.utcnow()  # 记录开始时间
             for d in datas:  # 遍历所有数据
-                qlapse = datetime.datetime.now(datetime.timezone.utc) - qstart  # 计算经过的时间
+                qlapse = datetime.datetime.utcnow() - qstart  # 计算经过的时间
                 d.do_qcheck(newqcheck, qlapse.total_seconds())  # 执行qcheck
                 # 实例: 调用data0.next()可能返回True表示有新数据，None表示等待中，False表示没有更多数据
                 drets.append(d.next(ticks=False))  # 调用next方法并记录返回值

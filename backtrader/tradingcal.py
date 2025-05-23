@@ -11,8 +11,7 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -196,25 +195,25 @@ class TradingCalendar(TradingCalendarBase):
 
 class PandasMarketCalendar(TradingCalendarBase):
     '''
-    Wrapper of ``pandas_market_calendars`` for a trading calendar. The package
-    ``pandas_market_calendar`` must be installed
+    ``pandas_market_calendars``包的交易日历封装。必须安装
+    ``pandas_market_calendar``包
 
-    Params:
+    参数:
 
-      - ``calendar`` (default ``None``)
+      - ``calendar`` (默认 ``None``)
 
-        The param ``calendar`` accepts the following:
+        参数``calendar``接受以下内容:
 
-        - string: the name of one of the calendars supported, for example
-          `NYSE`. The wrapper will attempt to get a calendar instance
+        - 字符串: 支持的日历名称之一，例如
+          `NYSE`。封装器将尝试获取日历实例
 
-        - calendar instance: as returned by ``get_calendar('NYSE')``
+        - 日历实例: 如通过``get_calendar('NYSE')``返回的实例
 
-      - ``cachesize`` (default ``365``)
+      - ``cachesize`` (默认 ``365``)
 
-        Number of days to cache in advance for lookup
+        预先缓存用于查找的天数
 
-    See also:
+    另见:
 
       - https://github.com/rsheftel/pandas_market_calendars
 
@@ -222,59 +221,58 @@ class PandasMarketCalendar(TradingCalendarBase):
 
     '''
     params = (
-        ('calendar', None),  # A pandas_market_calendars instance or exch name
-        ('cachesize', 365),  # Number of days to cache in advance
+        ('calendar', None),  # pandas_market_calendars实例或交易所名称
+        ('cachesize', 365),  # 预先缓存的天数
     )
 
     def __init__(self):
-        self._calendar = self.p.calendar
+        self._calendar = self.p.calendar  # 从参数获取日历
 
-        if isinstance(self._calendar, string_types):  # use passed mkt name
-            import pandas_market_calendars as mcal
-            self._calendar = mcal.get_calendar(self._calendar)
+        if isinstance(self._calendar, string_types):  # 使用传入的市场名称
+            import pandas_market_calendars as mcal  # 导入pandas_market_calendars
+            self._calendar = mcal.get_calendar(self._calendar)  # 获取日历实例
 
-        import pandas as pd  # guaranteed because of pandas_market_calendars
-        self.dcache = pd.DatetimeIndex([0.0])
-        self.idcache = pd.DataFrame(index=pd.DatetimeIndex([0.0]))
-        self.csize = timedelta(days=self.p.cachesize)
+        import pandas as pd  # 由于pandas_market_calendars的存在，pandas一定可用
+        self.dcache = pd.DatetimeIndex([0.0])  # 初始化日期缓存
+        self.idcache = pd.DataFrame(index=pd.DatetimeIndex([0.0]))  # 初始化索引缓存
+        self.csize = timedelta(days=self.p.cachesize)  # 计算缓存大小的时间间隔
 
     def _nextday(self, day):
         '''
-        Returns the next trading day (datetime/date instance) after ``day``
-        (datetime/date instance) and the isocalendar components
+        返回给定``day``(datetime/date实例)之后的下一个交易日
+        (datetime/date实例)及其iso日历组件
 
-        The return value is a tuple with 2 components: (nextday, (y, w, d))
+        返回值是一个包含2个组件的元组: (nextday, (y, w, d))
         '''
-        day += ONEDAY
-        while True:
-            i = self.dcache.searchsorted(day)
-            if i == len(self.dcache):
-                # keep a cache of 1 year to speed up searching
-                self.dcache = self._calendar.valid_days(day, day + self.csize)
-                continue
+        day += ONEDAY  # 增加一天
+        while True:  # 持续循环直到找到下一个交易日
+            i = self.dcache.searchsorted(day)  # 搜索日期在缓存中的位置
+            if i == len(self.dcache):  # 如果日期超出缓存范围
+                # 保持一年的缓存以加速搜索
+                self.dcache = self._calendar.valid_days(day, day + self.csize)  # 更新缓存
+                continue  # 重新搜索
 
-            d = self.dcache[i].to_pydatetime()
-            return d, d.isocalendar()
+            d = self.dcache[i].to_pydatetime()  # 转换为datetime对象
+            return d, d.isocalendar()  # 返回日期和其isocalendar组件
 
     def schedule(self, day, tz=None):
         '''
-        Returns the opening and closing times for the given ``day``. If the
-        method is called, the assumption is that ``day`` is an actual trading
-        day
+        返回给定``day``的开盘和收盘时间。如果调用此方法，
+        假设``day``是一个实际的交易日
 
-        The return value is a tuple with 2 components: opentime, closetime
+        返回值是一个包含2个组件的元组: opentime, closetime
         '''
-        while True:
-            i = self.idcache.index.searchsorted(day.date())
-            if i == len(self.idcache):
-                # keep a cache of 1 year to speed up searching
-                self.idcache = self._calendar.schedule(day, day + self.csize)
-                continue
+        while True:  # 持续循环直到找到有效数据
+            i = self.idcache.index.searchsorted(day.date())  # 在索引缓存中搜索日期
+            if i == len(self.idcache):  # 如果日期超出缓存范围
+                # 保持一年的缓存以加速搜索
+                self.idcache = self._calendar.schedule(day, day + self.csize)  # 更新缓存
+                continue  # 重新搜索
 
-            st = (x.tz_localize(None) for x in self.idcache.iloc[i, 0:2])
-            opening, closing = st  # Get utc naive times
-            if day > closing:  # passed time is over the sessionend
-                day += ONEDAY  # wrap over to next day
-                continue
+            st = (x.tz_localize(None) for x in self.idcache.iloc[i, 0:2])  # 获取无时区时间
+            opening, closing = st  # 获取UTC无时区时间
+            if day > closing:  # 如果传入的时间超过了交易时段结束
+                day += ONEDAY  # 转到下一天
+                continue  # 重新搜索
 
-            return opening.to_pydatetime(), closing.to_pydatetime()
+            return opening.to_pydatetime(), closing.to_pydatetime()  # 返回开盘和收盘时间

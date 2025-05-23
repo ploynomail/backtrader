@@ -63,6 +63,10 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
 
     _store = 1  # 标识为store连接的数据源
 
+    # 自定义状态常量
+    HISTORICALDATA = 10  # 历史数据状态
+    RTDATA = 11  # 实时数据状态
+
     def islive(self):
         """标识这是一个实时数据源"""
         return True
@@ -78,6 +82,7 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
         self._thread = None  # 数据生成线程
         self._running = False  # 运行标志
         self._historical_loaded = False  # 历史数据是否已加载
+        self._in_history_phase = True  # 标记是否在历史数据阶段
         
         # 数据状态
         self._laststatus = self.CONNECTED  # 初始状态为已连接
@@ -122,12 +127,14 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
             return
             
         try:
+            # 通知进入历史数据阶段
+            self._put_notification(self.HISTORICALDATA)
+            
             # 从数据生成器获取历史数据
             hist_data = self._data_generator.get_historical_data(self.p.historical_days)
             
             # 记录数据已加载
             self._historical_loaded = True
-            self._put_notification(self.LIVE)
             
             # 将历史数据加入队列
             for bar in hist_data:
@@ -145,6 +152,12 @@ class SimulatedRealTimeData(with_metaclass(bt.MetaParams, DataBase)):
             # 先加载历史数据
             if self._load_history_first and not self._historical_loaded:
                 self._load_historical_data()
+            
+            # 标记历史数据阶段结束，开始实时数据
+            self._in_history_phase = False
+            
+            # 通知从历史数据转为实时数据
+            self._put_notification(self.RTDATA)
             
             # 设置为实时状态
             self._put_notification(self.LIVE)
@@ -378,8 +391,13 @@ class MyStrategy(bt.Strategy):
         self.sma = bt.indicators.SMA(self.data.close, period=self.params.sma_period)
         self.dataclose = self.data.close
         self.order = None
+        self.live_trading = False  # 标记是否处于实时交易阶段
         
     def next(self):
+        # 只有在实时交易阶段才执行交易操作
+        if not self.live_trading:
+            return
+            
         if not self.position:
             if self.dataclose[0] > self.sma[0]:
                 self.order = self.buy()
@@ -391,8 +409,16 @@ class MyStrategy(bt.Strategy):
     
     def notify_data(self, data, status, *args, **kwargs):
         """数据状态通知"""
-        # print(f'数据状态: {data._name} - {bt.feeds.DataBase.NOTIFS[status]}')
-        if status == data.LIVE:
+        print(f'数据状态: {data._name} - {status}')
+        
+        # SimulatedRealTimeData的自定义状态处理
+        if hasattr(data, 'RTDATA') and status == data.RTDATA:
+            self.live_trading = True
+            print("数据源已从历史数据进入实时交易状态，开始执行交易信号!")
+        elif hasattr(data, 'HISTORICALDATA') and status == data.HISTORICALDATA:
+            self.live_trading = False
+            print("数据源正在加载历史数据，此阶段不执行交易!")
+        elif status == data.LIVE:
             print("数据源已进入实时状态!")
             
     def notify_order(self, order):
@@ -421,7 +447,7 @@ if __name__ == '__main__':
         historical_days=30,                # 回填30天历史数据
         timeframe=bt.TimeFrame.Minutes,    # 分钟级数据
         compression=5,                     # 5分钟压缩
-        qcheck=3,                        # 每0.5秒检查新数据
+        qcheck=3,                        # 每3秒检查新数据
         rtbar=True,                        # 交付未完成的实时柱
         simulated_generator=DefaultSimulatedDataGenerator,
         generator_args={

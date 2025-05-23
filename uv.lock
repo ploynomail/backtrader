@@ -13,12 +13,40 @@ source = { virtual = "." }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pandas-market-calendars" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "pandas", specifier = ">=2.2.3" },
+    { name = "pandas-market-calendars", specifier = ">=5.1.0" },
+]
+
+[[package]]
+name = "exchange-calendars"
+version = "4.10.1"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "korean-lunar-calendar" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyluach" },
+    { name = "toolz" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/93/57/db89c71de379a2fb35e6d179131264159241d0e0046d070d1dbc8063c513/exchange_calendars-4.10.1.tar.gz", hash = "sha256:32885a58557cee82359f8b54f396616fde1ee0df05911f67416934d58bcd13e1", size = 3915378 }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/b5/e2/49c90abbb1852f9fe47a6585cc32bf83e670678851006c018b34076849ec/exchange_calendars-4.10.1-py3-none-any.whl", hash = "sha256:efb5a1665b6c6bf09ea621f4f0be39ed961de69db6355d1e0e4ad3d1b584525b", size = 200140 },
+]
+
+[[package]]
+name = "korean-lunar-calendar"
+version = "0.3.1"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/5a/93/a0bd2bd53ab19330e83ecc5652b7774ae86fd2fee19bc05ad220cf9db08b/korean_lunar_calendar-0.3.1.tar.gz", hash = "sha256:eb2c485124a061016926bdea6d89efdf9b9fdbf16db55895b6cf1e5bec17b857", size = 9877 }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/9c/96/30f3fe51b336bb6da4714f4fdad7bbdce8f13af79af2eb75e22908f3f9f4/korean_lunar_calendar-0.3.1-py3-none-any.whl", hash = "sha256:392757135c492c4f42a604e6038042953c35c6f449dda5f27e3f86a7f9c943e5", size = 9033 },
 ]
 
 [[package]]
@@ -111,6 +139,30 @@ wheels = [
 ]
 
 [[package]]
+name = "pandas-market-calendars"
+version = "5.1.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "exchange-calendars" },
+    { name = "pandas" },
+    { name = "python-dateutil" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/2c/dc/11e6084bbf6a0fde640250fde4951163179ef722444e1e54c4afd6b76985/pandas_market_calendars-5.1.0.tar.gz", hash = "sha256:edd3de544e91b339d03aa332e5adcf0c6f425ee7a19100630f27bb6499777afb", size = 160256 }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/e5/81/6570c4d0549953a5171946fa158f2f1e04ad8ca2c94e13203661ef3067c8/pandas_market_calendars-5.1.0-py3-none-any.whl", hash = "sha256:5cb30c35bb828f25814bed8214be7319e170a644cd14a929edf302334aa208ac", size = 123926 },
+]
+
+[[package]]
+name = "pyluach"
+version = "2.2.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/eb/fc/4567068be2c78ac09339201f4a1adfd9e95f6f873f6f37f6fafb5648363e/pyluach-2.2.0.tar.gz", hash = "sha256:9063a25387cd7624276fd0656508bada08aa8a6f22e8db352844cd858e69012b", size = 26198 }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/4f/83/2e585d06d49e0320050b3d7d8ae0dfbd1459e976ff9f4b4d8bcca983d474/pyluach-2.2.0-py3-none-any.whl", hash = "sha256:d1eb49d6292087e9290f4661ae01b60c8c933704ec8c9cef82673b349ff96adf", size = 25037 },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -138,6 +190,15 @@ source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031 }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050 },
+]
+
+[[package]]
+name = "toolz"
+version = "1.0.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/8a/0b/d80dfa675bf592f636d1ea0b835eab4ec8df6e9415d8cfd766df54456123/toolz-1.0.0.tar.gz", hash = "sha256:2c86e3d9a04798ac556793bced838816296a2f085017664e4995cb40a1047a02", size = 66790 }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/03/98/eb27cc78ad3af8e302c9d8ff4977f5026676e130d28dd7578132a457170c/toolz-1.0.0-py3-none-any.whl", hash = "sha256:292c8f1c4e7516bf9086f8850935c799a874039c8bcf959d47b600e4c44a6236", size = 56383 },
 ]
 
 [[package]]
